@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1c0d0a">
+<title>李珮瑄律師事務所</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#7a4545;--brand-dk:#5e3535;--gold:#d5c1a8;--cream:#fef1e4;--bg:#faf8f5;--ink:#353535;--coffee:#1c0d0a;--line:#eee5db}
+*{box-sizing:border-box}body{margin:0;font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+header{background:var(--coffee);color:#f5ece4;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));position:sticky;top:0;z-index:9;display:flex;justify-content:space-between;align-items:center}
+header .t{font-weight:700}header .t small{display:block;font-size:.68rem;color:var(--gold);font-weight:400}
+header button{background:rgba(213,193,168,.2);border:none;color:#f5ece4;border-radius:8px;padding:7px 12px;font-family:inherit;font-size:.8rem;margin-left:6px}
+main{padding:14px;max-width:640px;margin:0 auto}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:#fff;border-radius:12px;padding:13px 15px;box-shadow:0 1px 4px rgba(122,69,69,.08);display:flex;gap:11px;align-items:center}
+.stat .ic{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.ic1{background:var(--cream)}.ic2{background:#fdecea}.ic3{background:#fff6e0}.ic4{background:#ecf3ec}
+.stat .n{font-size:1.3rem;font-weight:700;color:var(--coffee);line-height:1.1}.stat .l{font-size:.7rem;color:#8a7a6d}
+section{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(122,69,69,.08);padding:15px 16px;margin-bottom:14px}
+section h2{font-size:.95rem;color:var(--brand);margin:0 0 10px;padding-bottom:7px;border-bottom:2px solid var(--cream)}
+.item{border-bottom:1px solid var(--line);padding:8px 2px;font-size:.87rem}.item:last-child{border-bottom:none}
+.item .d{font-size:.75rem;color:#8a7a6d}
+.item.od{background:#fdecea;border-radius:6px;padding:8px}.item.wk{background:#fff8e6;border-radius:6px;padding:8px}
+.ccard{border:1px solid var(--line);border-radius:10px;padding:12px 14px;border-top:4px solid var(--brand);margin-bottom:10px}
+.ccard.adv{border-top-color:var(--gold)}
+.chead{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:flex-start}
+.cname{font-weight:700;color:var(--brand-dk);font-size:.95rem}
+.ctype{font-size:.76rem;color:#8a7a6d;margin:5px 0 7px}
+.kv{font-size:.84rem;margin:3px 0}.kv.sm{font-size:.74rem;color:#8a7a6d}.note{color:#8a6d3b}
+.badge{font-size:.64rem;padding:2px 8px;border-radius:10px;color:#fff;margin-left:4px;white-space:nowrap}
+.b-red{background:#b03a2e}.b-org{background:#ca8324}.b-gry{background:#a99e93}.b-blu{background:#5b7a99}.b-gold{background:#b09468}
+.cat{font-weight:700;color:var(--brand)}
+.empty{color:#8a7a6d;font-size:.85rem}
+.foot{font-size:.7rem;color:#a99e93;text-align:center;margin:14px 0 30px}
+/* 登入畫面 */
+#login{max-width:420px;margin:8vh auto;padding:0 18px}
+#login .box{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(122,69,69,.12);padding:26px 22px;border-top:5px solid var(--brand)}
+#login h1{color:var(--brand);font-size:1.15rem;margin:0 0 4px}#login p{font-size:.8rem;color:#8a7a6d;margin:4px 0 16px}
+#login label{display:block;font-size:.78rem;color:#8a7a6d;margin:12px 0 4px}
+#login input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;font-size:.9rem;font-family:inherit}
+#login button{width:100%;margin-top:18px;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:13px;font-size:.95rem;font-family:inherit;font-weight:700}
+#login .err{color:#b03a2e;font-size:.8rem;margin-top:10px;display:none}
+#loading{text-align:center;padding:40px;color:#8a7a6d}
+</style></head><body>
+<div id="login" style="display:none"><div class="box">
+<h1>⚖️ 李珮瑄律師事務所</h1><p>內部系統・首次使用請輸入存取設定（只需一次，之後自動登入）</p>
+<label>資料庫位址（帳號/repo，例：kelly/lawfirm-data）</label><input id="in-repo" placeholder="帳號/lawfirm-data" autocapitalize="none">
+<label>存取金鑰（GitHub Fine-grained Token）</label><input id="in-token" type="password" placeholder="github_pat_...">
+<button onclick="saveLogin()">登入</button><div class="err" id="err"></div>
+</div></div>
+<div id="app" style="display:none">
+<header><div class="t">⚖️ 李珮瑄律師事務所<small>KELLY LAWYER 內部系統</small></div>
+<div><button onclick="loadData(true)">🔄</button><button onclick="logout()">登出</button></div></header>
+<main id="content"><div id="loading">讀取中…</div></main>
+</div>
+<script>
+const LS = localStorage;
+function saveLogin(){
+  const r = document.getElementById('in-repo').value.trim(), t = document.getElementById('in-token').value.trim();
+  if(!r.includes('/') || !t){ showErr('請填入「帳號/repo」與金鑰'); return; }
+  LS.setItem('repo', r); LS.setItem('token', t); init();
+}
+function showErr(m){ const e = document.getElementById('err'); e.textContent = m; e.style.display = 'block'; }
+function logout(){ LS.removeItem('token'); location.reload(); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+async function loadData(fresh){
+  document.getElementById('content').innerHTML = '<div id="loading">讀取中…</div>';
+  try{
+    const res = await fetch(`https://api.github.com/repos/${LS.getItem('repo')}/contents/dashboard.json${fresh?'?t='+Date.now():''}`,
+      { headers: { 'Authorization': 'Bearer ' + LS.getItem('token'), 'Accept': 'application/vnd.github.raw+json' } });
+    if(res.status === 401 || res.status === 403){ LS.removeItem('token'); location.reload(); return; }
+    if(res.status === 404) throw new Error('找不到 dashboard.json——請先在電腦執行「更新首頁」');
+    if(!res.ok) throw new Error('讀取失敗 HTTP ' + res.status);
+    render(await res.json());
+  }catch(e){
+    document.getElementById('content').innerHTML = `<section><div class="empty">⚠️ ${esc(e.message)}<br><br>網路正常嗎？金鑰過期了嗎？（金鑰過期請登出重新輸入新金鑰）</div></section>`;
+  }
+}
+function urgBadge(u, sp){
+  let b = {'高':'<span class="badge b-red">急迫：高</span>','中':'<span class="badge b-org">急迫：中</span>','低':'<span class="badge b-gry">急迫：低</span>'}[u] || '<span class="badge b-gry">待掃描</span>';
+  if(sp) b += '<span class="badge b-blu">尚未掃描</span>';
+  return b;
+}
+function render(d){
+  const t = d.todos, todoItem = (x,c)=>`<div class="item ${c}"><div class="d">${esc(x.deadline)}｜${esc(x.case)}</div>${esc(x.task)}</div>`;
+  const todoHtml = (t.overdue.length + t.week.length + t.later.length) ?
+    t.overdue.map(x=>todoItem(x,'od')).join('') + t.week.map(x=>todoItem(x,'wk')).join('') + t.later.map(x=>todoItem(x,'')).join('')
+    : '<div class="empty">目前沒有未完成的待辦 🎉</div>';
+  const caseHtml = d.cases.map(c=>`<div class="ccard"><div class="chead"><span class="cname">${esc(c.name)}</span><span>${urgBadge(c.urgency, c.scan_pending)}</span></div>
+    <div class="ctype">${esc(c.type||'')}<br>${esc(c.stage||'')}</div>
+    ${c.hearing?`<div class="kv">🏛️ 庭期：<b>${esc(c.hearing)}</b></div>`:''}
+    ${c.deadline?`<div class="kv">⏰ 期限：<b>${esc(c.deadline)}</b></div>`:''}
+    ${c.number?`<div class="kv sm">案號：${esc(c.number)}</div>`:''}
+    ${c.note?`<div class="kv sm note">📝 ${esc(c.note)}</div>`:''}</div>`).join('');
+  const advHtml = d.advisory.map(a=>`<div class="ccard adv"><div class="chead"><span class="cname">${esc(a.name)}</span><span class="badge b-gold">顧問</span></div>
+    ${a.note?`<div class="kv sm note">📝 ${esc(a.note)}</div>`:''}</div>`).join('');
+  const workHtml = d.worklog.map(w=>`<div class="item"><div class="d">${esc(w.date)}｜${esc(w.case||'—')}｜${esc(w.skill)}</div>${esc(w.work)}</div>`).join('');
+  const cheatHtml = d.cheats.map(c=>`<div class="item"><span class="cat">${esc(c[0])}</span>｜${esc(c[1])}<br><span style="margin-left:2.6em">${esc(c[2])}</span></div>`).join('');
+  document.getElementById('content').innerHTML = `
+  <div class="stats">
+   <div class="stat"><div class="ic ic1">📂</div><div><div class="n">${d.stats.cases}</div><div class="l">進行中案件</div></div></div>
+   <div class="stat"><div class="ic ic2">⚠️</div><div><div class="n">${d.stats.overdue}</div><div class="l">逾期待辦</div></div></div>
+   <div class="stat"><div class="ic ic3">⏰</div><div><div class="n">${d.stats.week}</div><div class="l">7 日內期限</div></div></div>
+   <div class="stat"><div class="ic ic4">🗂️</div><div><div class="n">${d.stats.week_hours}</div><div class="l">本週工作時數</div></div></div>
+  </div>
+  <section><h2>⏰ 期限與待辦</h2>${todoHtml}</section>
+  <section><h2>📂 進行中案件（${d.cases.length} 件）</h2>${caseHtml}</section>
+  <section><h2>🤝 法律顧問客戶（${d.advisory.length} 家）</h2>${advHtml}</section>
+  <section><h2>🗂️ 最近工作紀錄</h2>${workHtml}</section>
+  <section><h2>💬 跟 Claude 說什麼</h2>${cheatHtml}</section>
+  <div class="foot">資料時間：${esc(d.generated)}（民國 ${esc(d.today_roc)}）<br>在電腦跟 Claude 說「更新首頁」即可更新</div>`;
+}
+function init(){
+  const ok = LS.getItem('repo') && LS.getItem('token');
+  document.getElementById('login').style.display = ok ? 'none' : 'block';
+  document.getElementById('app').style.display = ok ? 'block' : 'none';
+  if(ok) loadData();
+}
+init();
+</script></body></html>
