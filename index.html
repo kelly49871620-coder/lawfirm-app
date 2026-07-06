@@ -42,6 +42,23 @@ section h2{font-size:.95rem;color:var(--brand);margin:0 0 10px;padding-bottom:7p
 #login button{width:100%;margin-top:18px;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:13px;font-size:.95rem;font-family:inherit;font-weight:700}
 #login .err{color:#b03a2e;font-size:.8rem;margin-top:10px;display:none}
 #loading{text-align:center;padding:40px;color:#8a7a6d}
+/* 案件詳情頁 */
+.ccard.tap{cursor:pointer;-webkit-tap-highlight-color:rgba(122,69,69,.1)}
+.ccard.tap:active{background:var(--cream)}
+.tapfoot{font-size:.72rem;color:var(--brand);margin-top:8px;text-align:right}
+.backbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.backbar button{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:inherit;font-size:.85rem}
+.drivebtn{display:block;text-align:center;background:var(--coffee);color:var(--gold);text-decoration:none;border-radius:10px;padding:12px;font-size:.9rem;margin-bottom:14px}
+details.fold{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden}
+details.fold summary{padding:11px 13px;background:var(--cream);font-weight:700;color:var(--brand-dk);font-size:.88rem;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+details.fold summary::after{content:'▾';color:#8a7a6d}
+details.fold[open] summary::after{content:'▴'}
+details.fold .fbody{padding:4px 13px 10px}
+.fitem{font-size:.8rem;padding:6px 0;border-bottom:1px solid var(--line);word-break:break-all}
+.fitem:last-child{border-bottom:none}
+.fmore{font-size:.75rem;color:#8a7a6d;padding:6px 0}
+.mdbox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.83rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow-y:auto}
+.mdbox .h{font-weight:700;color:var(--brand);display:block;margin-top:6px}
 </style></head><body>
 <div id="login" style="display:none"><div class="box">
 <h1>⚖️ 李珮瑄律師事務所</h1><p>內部系統・首次使用請輸入存取設定（只需一次，之後自動登入）</p>
@@ -82,19 +99,23 @@ function urgBadge(u, sp){
   if(sp) b += '<span class="badge b-blu">尚未掃描</span>';
   return b;
 }
+let DATA = null;
 function render(d){
+  DATA = d;
   const t = d.todos, todoItem = (x,c)=>`<div class="item ${c}"><div class="d">${esc(x.deadline)}｜${esc(x.case)}</div>${esc(x.task)}</div>`;
   const todoHtml = (t.overdue.length + t.week.length + t.later.length) ?
     t.overdue.map(x=>todoItem(x,'od')).join('') + t.week.map(x=>todoItem(x,'wk')).join('') + t.later.map(x=>todoItem(x,'')).join('')
     : '<div class="empty">目前沒有未完成的待辦 🎉</div>';
-  const caseHtml = d.cases.map(c=>`<div class="ccard"><div class="chead"><span class="cname">${esc(c.name)}</span><span>${urgBadge(c.urgency, c.scan_pending)}</span></div>
+  const caseHtml = d.cases.map((c,i)=>`<div class="ccard tap" onclick="openDetail('cases',${i})"><div class="chead"><span class="cname">${esc(c.name)}</span><span>${urgBadge(c.urgency, c.scan_pending)}</span></div>
     <div class="ctype">${esc(c.type||'')}<br>${esc(c.stage||'')}</div>
     ${c.hearing?`<div class="kv">🏛️ 庭期：<b>${esc(c.hearing)}</b></div>`:''}
     ${c.deadline?`<div class="kv">⏰ 期限：<b>${esc(c.deadline)}</b></div>`:''}
     ${c.number?`<div class="kv sm">案號：${esc(c.number)}</div>`:''}
-    ${c.note?`<div class="kv sm note">📝 ${esc(c.note)}</div>`:''}</div>`).join('');
-  const advHtml = d.advisory.map(a=>`<div class="ccard adv"><div class="chead"><span class="cname">${esc(a.name)}</span><span class="badge b-gold">顧問</span></div>
-    ${a.note?`<div class="kv sm note">📝 ${esc(a.note)}</div>`:''}</div>`).join('');
+    ${c.note?`<div class="kv sm note">📝 ${esc(c.note)}</div>`:''}
+    <div class="tapfoot">點我看卷宗內容 ▸</div></div>`).join('');
+  const advHtml = d.advisory.map((a,i)=>`<div class="ccard adv tap" onclick="openDetail('advisory',${i})"><div class="chead"><span class="cname">${esc(a.name)}</span><span class="badge b-gold">顧問</span></div>
+    ${a.note?`<div class="kv sm note">📝 ${esc(a.note)}</div>`:''}
+    <div class="tapfoot">點我看資料夾內容 ▸</div></div>`).join('');
   const workHtml = d.worklog.map(w=>`<div class="item"><div class="d">${esc(w.date)}｜${esc(w.case||'—')}｜${esc(w.skill)}</div>${esc(w.work)}</div>`).join('');
   const cheatHtml = d.cheats.map(c=>`<div class="item"><span class="cat">${esc(c[0])}</span>｜${esc(c[1])}<br><span style="margin-left:2.6em">${esc(c[2])}</span></div>`).join('');
   document.getElementById('content').innerHTML = `
@@ -111,6 +132,47 @@ function render(d){
   <section><h2>💬 跟 Claude 說什麼</h2>${cheatHtml}</section>
   <div class="foot">資料時間：${esc(d.generated)}（民國 ${esc(d.today_roc)}）<br>在電腦跟 Claude 說「更新首頁」即可更新</div>`;
 }
+function mdRender(txt){
+  // 極簡 markdown：標題行加粗上色，其餘保留原文（pre-wrap）
+  return txt.split('\n').map(l=>{
+    const m = l.match(/^(#{1,6})\s*(.*)/);
+    return m ? `<span class="h">${esc(m[2])}</span>` : esc(l);
+  }).join('\n');
+}
+function openDetail(kind, i){
+  const c = DATA && DATA[kind] && DATA[kind][i];
+  if(!c) return;
+  const det = c.detail;
+  const person = String(c.name||'').split('/')[0];
+  const driveQ = encodeURIComponent(person);
+  let body = `<div class="backbar"><button onclick="closeDetail()">‹ 返回總覽</button><span class="cname">${esc(c.name)}</span></div>`;
+  body += `<a class="drivebtn" href="https://drive.google.com/drive/search?q=${driveQ}" target="_blank" rel="noopener">☁️ 在 Google Drive 搜尋「${esc(person)}」（可開原始檔）</a>`;
+  if(kind==='cases'){
+    body += `<section><h2>📌 案件狀態</h2>
+      ${c.type?`<div class="kv">${esc(c.type)}</div>`:''}
+      ${c.stage?`<div class="kv sm">${esc(c.stage)}</div>`:''}
+      ${c.hearing?`<div class="kv">🏛️ 庭期：<b>${esc(c.hearing)}</b></div>`:''}
+      ${c.deadline?`<div class="kv">⏰ 期限：<b>${esc(c.deadline)}</b></div>`:''}
+      ${c.number?`<div class="kv sm">案號：${esc(c.number)}</div>`:''}
+      ${c.note?`<div class="kv sm note">📝 ${esc(c.note)}</div>`:''}</section>`;
+  }
+  if(det && det.index){
+    body += `<section><h2>📋 案件摘要（_index.md）</h2><div class="mdbox">${mdRender(det.index)}</div></section>`;
+  }
+  if(det && det.folders && det.folders.length){
+    body += `<section><h2>📁 卷宗資料夾</h2>` + det.folders.map(f=>
+      `<details class="fold"><summary>${esc(f.name)}<span>${f.count} 個檔案</span></summary><div class="fbody">`
+      + f.files.map(x=>`<div class="fitem">📄 ${esc(x)}</div>`).join('')
+      + (f.more?`<div class="fmore">…還有 ${f.more} 個檔案（完整清單在電腦上）</div>`:'')
+      + `</div></details>`).join('') + `</section>`;
+  }else if(!det){
+    body += `<section><div class="empty">此案尚無資料夾清單——在電腦跟 Claude 說「更新首頁」重新打包一次即可。</div></section>`;
+  }
+  body += `<div class="foot">檔案實體在事務所電腦與 Google Drive；手機端為唯讀清單</div>`;
+  document.getElementById('content').innerHTML = body;
+  window.scrollTo(0,0);
+}
+function closeDetail(){ if(DATA) render(DATA); window.scrollTo(0,0); }
 function init(){
   const ok = LS.getItem('repo') && LS.getItem('token');
   document.getElementById('login').style.display = ok ? 'none' : 'block';
