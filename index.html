@@ -3,6 +3,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1c0d0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>李珮瑄律師事務所</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -59,6 +61,26 @@ details.fold .fbody{padding:4px 13px 10px}
 .fmore{font-size:.75rem;color:#8a7a6d;padding:6px 0}
 .mdbox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.83rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow-y:auto}
 .mdbox .h{font-weight:700;color:var(--brand);display:block;margin-top:6px}
+/* v3 與桌面版一致的元件（2026-07-12 渲染統一：邏輯在 dashboard.json 算好，這裡純顯示） */
+.focus{background:linear-gradient(135deg,#fdf6ee,var(--cream));border:1px solid var(--gold)}
+.focus-item{display:flex;align-items:flex-start;gap:10px;background:#fff;border-radius:10px;padding:10px 12px;margin:8px 0;box-shadow:0 1px 3px rgba(122,69,69,.07);flex-wrap:wrap}
+.focus-item .fd{font-weight:900;font-size:.85rem;color:#b03a2e;min-width:120px}
+.focus-item.s2 .fd{color:#9a6b00}
+.focus-item .fw{font-size:.85rem;flex:1;min-width:60%}
+.chip{display:inline-block;font-weight:700;font-size:.76rem;padding:4px 12px;border-radius:20px;white-space:nowrap;margin-top:6px}
+.chip.od,.chip.wk{background:#fdecea;color:#b03a2e}
+.chip.mo{background:#fff6e0;color:#9a6b00}
+.chip.far{background:#ecf3ec;color:#3a7a45}
+.chip.none{background:#f1ece6;color:#8a7a6d;font-weight:400}
+.ccard{border-left:6px solid #a99e93;border-top:1px solid var(--line)}
+.ccard.hi{border-left-color:#b03a2e}.ccard.mid{border-left-color:var(--gold)}.ccard.low{background:#fcfbf9}
+.one{font-size:.8rem;color:#6b5d52;margin:5px 0 2px}
+details.sec summary{cursor:pointer;font-size:.92rem;color:var(--brand);font-weight:700;padding:2px 0;list-style:none}
+details.sec summary::-webkit-details-marker{display:none}
+details.sec[open] summary{margin-bottom:8px}
+.stale{background:#fff6e0;color:#9a6b00;border:1px solid #e8d9a0;border-radius:10px;padding:9px 12px;font-size:.78rem;margin-bottom:12px}
+.stale.bad{background:#fdecea;color:#b03a2e;border-color:#eebbb4}
+.dlink{display:inline-block;font-size:.78rem;color:var(--brand);text-decoration:none;border:1px solid var(--gold);border-radius:8px;padding:3px 10px;margin-left:8px;white-space:nowrap}
 </style></head><body>
 <div id="login" style="display:none"><div class="box">
 <h1>⚖️ 李珮瑄律師事務所</h1><p>內部系統・首次使用請輸入存取設定（只需一次，之後自動登入）</p>
@@ -89,6 +111,7 @@ async function loadData(fresh){
     if(res.status === 401 || res.status === 403){ LS.removeItem('token'); location.reload(); return; }
     if(res.status === 404) throw new Error('找不到 dashboard.json——請先在電腦執行「更新首頁」');
     if(!res.ok) throw new Error('讀取失敗 HTTP ' + res.status);
+    loadedAt = Date.now();
     render(await res.json());
   }catch(e){
     document.getElementById('content').innerHTML = `<section><div class="empty">⚠️ ${esc(e.message)}<br><br>網路正常嗎？金鑰過期了嗎？（金鑰過期請登出重新輸入新金鑰）</div></section>`;
@@ -99,37 +122,62 @@ function urgBadge(u, sp){
   if(sp) b += '<span class="badge b-blu">尚未掃描</span>';
   return b;
 }
-let DATA = null;
+let DATA = null, loadedAt = 0;
+function dataAge(d){
+  // d.generated = "YYYY-MM-DD HH:MM"（電腦當地時間，手機同時區）
+  const t = Date.parse(String(d.generated).replace(' ', 'T') + ':00');
+  if(isNaN(t)) return null;
+  return Math.round((Date.now() - t) / 60000); // 分鐘
+}
+function ageLine(d){
+  const m = dataAge(d);
+  if(m == null) return '';
+  const label = m < 60 ? `${Math.max(m,0)} 分鐘前` : m < 1440 ? `${Math.round(m/60)} 小時前` : `${Math.round(m/1440)} 天前`;
+  if(m > 360) return `<div class="stale ${m>1440?'bad':''}">⚠️ 資料是 ${label} 的快照（${esc(d.generated)}），可能已過期——開電腦跟 Claude 說「更新首頁」。</div>`;
+  return `<div class="foot" style="margin:0 0 10px">資料時間：${esc(d.generated)}（${label}）</div>`;
+}
+function chipHtml(ch){
+  if(!ch) return '';
+  return ch.text != null ? `<span class="chip ${esc(ch.cls)}">${esc(ch.text)}</span>`
+                         : `<span class="chip none">無迫切期限</span>`;
+}
 function render(d){
   DATA = d;
+  // 版面與桌面版同結構：統計3卡 → ☀️焦點 → ⏰其餘待辦(摺疊) → 📂案件卡 → 🧩專案 → 🤝顧問(摺疊) → 🗂️紀錄(摺疊) → 💬小抄(摺疊)
+  const focusHtml = (d.focus && d.focus.length) ?
+    d.focus.map(f=>`<div class="focus-item ${f.cls!=='od'?'s2':''}"><div class="fd">${esc(f.word)}</div><div class="fw"><b>${esc(f.who)}</b>──${esc(f.task)}</div></div>`).join('')
+    : '<div class="empty">沒有逾期或 7 日內的期限 🎉</div>';
   const t = d.todos, todoItem = (x,c)=>`<div class="item ${c}"><div class="d">${esc(x.deadline)}｜${esc(x.case)}</div>${esc(x.task)}</div>`;
-  const todoHtml = (t.overdue.length + t.week.length + t.later.length) ?
-    t.overdue.map(x=>todoItem(x,'od')).join('') + t.week.map(x=>todoItem(x,'wk')).join('') + t.later.map(x=>todoItem(x,'')).join('')
-    : '<div class="empty">目前沒有未完成的待辦 🎉</div>';
-  const caseHtml = d.cases.map((c,i)=>`<div class="ccard tap" onclick="openDetail('cases',${i})"><div class="chead"><span class="cname">${esc(c.name)}</span><span>${urgBadge(c.urgency, c.scan_pending)}</span></div>
-    <div class="ctype">${esc(c.type||'')}<br>${esc(c.stage||'')}</div>
-    ${c.hearing?`<div class="kv">🏛️ 庭期：<b>${esc(c.hearing)}</b></div>`:''}
-    ${c.deadline?`<div class="kv">⏰ 期限：<b>${esc(c.deadline)}</b></div>`:''}
-    ${c.number?`<div class="kv sm">案號：${esc(c.number)}</div>`:''}
-    ${c.note?`<div class="kv sm note">📝 ${esc(c.note)}</div>`:''}
-    <div class="tapfoot">點我看卷宗內容 ▸</div></div>`).join('');
+  const laterHtml = t.later.length ? t.later.map(x=>todoItem(x,'')).join('') : '<div class="empty">沒有其他待辦</div>';
+  const caseHtml = d.cases.map((c,i)=>`<div class="ccard tap ${esc((c.chip&&c.chip.edge)||'low')}" onclick="openDetail('cases',${i})">
+    <div class="chead"><span class="cname">${esc(String(c.name||'').replace('/','｜'))}</span><span>${c.scan_pending?'<span class="badge b-blu">尚未掃描</span>':''}</span></div>
+    <div class="one">${esc(c.stage_short || c.stage || '')}</div>${chipHtml(c.chip)}
+    <div class="tapfoot">點我看細節・開資料夾 ▸</div></div>`).join('');
+  const projHtml = (d.projects && d.projects.length) ?
+    d.projects.map(p=>`<div class="ccard ${esc((p.chip&&p.chip.edge)||'low')}">
+      <div class="chead"><span class="cname">${esc(p.name)}</span></div>
+      <div class="one">${esc(p.status_line||'')}</div>${chipHtml(p.chip)}
+      ${p.note?`<div class="kv sm note">📝 ${esc(p.note)}</div>`:''}</div>`).join('')
+    : '<div class="empty">目前沒有進行中的專案</div>';
   const advHtml = d.advisory.map((a,i)=>`<div class="ccard adv tap" onclick="openDetail('advisory',${i})"><div class="chead"><span class="cname">${esc(a.name)}</span><span class="badge b-gold">顧問</span></div>
     ${a.note?`<div class="kv sm note">📝 ${esc(a.note)}</div>`:''}
     <div class="tapfoot">點我看資料夾內容 ▸</div></div>`).join('');
   const workHtml = d.worklog.map(w=>`<div class="item"><div class="d">${esc(w.date)}｜${esc(w.case||'—')}｜${esc(w.skill)}</div>${esc(w.work)}</div>`).join('');
   const cheatHtml = d.cheats.map(c=>`<div class="item"><span class="cat">${esc(c[0])}</span>｜${esc(c[1])}<br><span style="margin-left:2.6em">${esc(c[2])}</span></div>`).join('');
   document.getElementById('content').innerHTML = `
+  ${ageLine(d)}
   <div class="stats">
    <div class="stat"><div class="ic ic1">📂</div><div><div class="n">${d.stats.cases}</div><div class="l">進行中案件</div></div></div>
    <div class="stat"><div class="ic ic2">⚠️</div><div><div class="n">${d.stats.overdue}</div><div class="l">逾期待辦</div></div></div>
    <div class="stat"><div class="ic ic3">⏰</div><div><div class="n">${d.stats.week}</div><div class="l">7 日內期限</div></div></div>
-   <div class="stat"><div class="ic ic4">🗂️</div><div><div class="n">${d.stats.week_hours}</div><div class="l">本週工作時數</div></div></div>
   </div>
-  <section><h2>⏰ 期限與待辦</h2>${todoHtml}</section>
+  <section class="focus"><h2>☀️ 先看這幾件（逾期＋7 日內）</h2>${focusHtml}</section>
+  <section><details class="sec"><summary>⏰ 其餘待辦（${t.later.length} 件，點開看）▾</summary>${laterHtml}</details></section>
   <section><h2>📂 進行中案件（${d.cases.length} 件）</h2>${caseHtml}</section>
-  <section><h2>🤝 法律顧問客戶（${d.advisory.length} 家）</h2>${advHtml}</section>
-  <section><h2>🗂️ 最近工作紀錄</h2>${workHtml}</section>
-  <section><h2>💬 跟 Claude 說什麼</h2>${cheatHtml}</section>
+  <section><h2>🧩 專案工作（${(d.projects||[]).length} 件）</h2>${projHtml}</section>
+  <section><details class="sec"><summary>🤝 法律顧問客戶（${d.advisory.length} 家）▾</summary>${advHtml}</details></section>
+  <section><details class="sec"><summary>🗂️ 最近工作紀錄 ▾</summary>${workHtml}</details></section>
+  <section><details class="sec"><summary>💬 跟 Claude 說什麼 ▾</summary>${cheatHtml}</details></section>
   <div class="foot">資料時間：${esc(d.generated)}（民國 ${esc(d.today_roc)}）<br>在電腦跟 Claude 說「更新首頁」即可更新</div>`;
 }
 function mdRender(txt){
@@ -145,8 +193,13 @@ function openDetail(kind, i){
   const det = c.detail;
   const person = String(c.name||'').split('/')[0];
   const driveQ = encodeURIComponent(person);
+  const drv = c.drive; // {id, subs:{資料夾名:id}}，由電腦端 drive_folder_map.py 產生
   let body = `<div class="backbar"><button onclick="closeDetail()">‹ 返回總覽</button><span class="cname">${esc(c.name)}</span></div>`;
-  body += `<a class="drivebtn" href="https://drive.google.com/drive/search?q=${driveQ}" target="_blank" rel="noopener">☁️ 在 Google Drive 搜尋「${esc(person)}」（可開原始檔）</a>`;
+  if(drv && drv.id){
+    body += `<a class="drivebtn" href="https://drive.google.com/drive/folders/${esc(drv.id)}" target="_blank" rel="noopener">☁️ 開啟本案資料夾（Google Drive，可直接開檔）</a>`;
+  }else{
+    body += `<a class="drivebtn" href="https://drive.google.com/drive/search?q=${driveQ}" target="_blank" rel="noopener">☁️ 在 Google Drive 搜尋「${esc(person)}」（可開原始檔）</a>`;
+  }
   if(kind==='cases'){
     body += `<section><h2>📌 案件狀態</h2>
       ${c.type?`<div class="kv">${esc(c.type)}</div>`:''}
@@ -160,11 +213,14 @@ function openDetail(kind, i){
     body += `<section><h2>📋 案件摘要（_index.md）</h2><div class="mdbox">${mdRender(det.index)}</div></section>`;
   }
   if(det && det.folders && det.folders.length){
-    body += `<section><h2>📁 卷宗資料夾</h2>` + det.folders.map(f=>
-      `<details class="fold"><summary>${esc(f.name)}<span>${f.count} 個檔案</span></summary><div class="fbody">`
+    const subs = (drv && drv.subs) || {};
+    body += `<section><h2>📁 卷宗資料夾</h2>` + det.folders.map(f=>{
+      const sid = subs[f.name];
+      const open = sid ? `<a class="dlink" href="https://drive.google.com/drive/folders/${esc(sid)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">開啟 ▸</a>` : '';
+      return `<details class="fold"><summary>${esc(f.name)}${open}<span>${f.count} 個檔案</span></summary><div class="fbody">`
       + f.files.map(x=>`<div class="fitem">📄 ${esc(x)}</div>`).join('')
       + (f.more?`<div class="fmore">…還有 ${f.more} 個檔案（完整清單在電腦上）</div>`:'')
-      + `</div></details>`).join('') + `</section>`;
+      + `</div></details>`;}).join('') + `</section>`;
   }else if(!det){
     body += `<section><div class="empty">此案尚無資料夾清單——在電腦跟 Claude 說「更新首頁」重新打包一次即可。</div></section>`;
   }
@@ -179,5 +235,9 @@ function init(){
   document.getElementById('app').style.display = ok ? 'block' : 'none';
   if(ok) loadData();
 }
+// App 回到前景且資料齡 >10 分鐘 → 靜默重抓（手機不再是過期快照）
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && LS.getItem('token') && Date.now() - loadedAt > 600000) loadData(true);
+});
 init();
 </script></body></html>
