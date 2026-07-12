@@ -187,9 +187,22 @@ function mdRender(txt){
     return m ? `<span class="h">${esc(m[2])}</span>` : esc(l);
   }).join('\n');
 }
-function openDetail(kind, i){
+async function fetchDetail(c){
+  // 分片 lazy fetch（2026-07-12）：卷宗清單存 details/{slug}.json，點進來才抓、抓過就快取
+  if(c.detail !== undefined || !c.detail_key) return;
+  try{
+    const res = await fetch(`https://api.github.com/repos/${LS.getItem('repo')}/contents/details/${encodeURIComponent(c.detail_key)}.json`,
+      { headers: { 'Authorization': 'Bearer ' + LS.getItem('token'), 'Accept': 'application/vnd.github.raw+json' } });
+    c.detail = res.ok ? await res.json() : null;
+  }catch(e){ c.detail = null; }
+}
+async function openDetail(kind, i){
   const c = DATA && DATA[kind] && DATA[kind][i];
   if(!c) return;
+  if(c.detail === undefined && c.detail_key){
+    document.getElementById('content').innerHTML = '<div id="loading">讀取卷宗清單…</div>';
+    await fetchDetail(c);
+  }
   const det = c.detail;
   const person = String(c.name||'').split('/')[0];
   const driveQ = encodeURIComponent(person);
