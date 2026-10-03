@@ -81,6 +81,12 @@ details.sec[open] summary{margin-bottom:8px}
 .stale{background:#fff6e0;color:#9a6b00;border:1px solid #e8d9a0;border-radius:10px;padding:9px 12px;font-size:.78rem;margin-bottom:12px}
 .stale.bad{background:#fdecea;color:#b03a2e;border-color:#eebbb4}
 .dlink{display:inline-block;font-size:.78rem;color:var(--brand);text-decoration:none;border:1px solid var(--gold);border-radius:8px;padding:3px 10px;margin-left:8px;white-space:nowrap}
+.decision-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.decision-head h2{border:0;padding:0;margin:0}.decision-count{font-size:.72rem;color:#8a7a6d}
+.decision{border:1px solid var(--line);border-left:5px solid #b03a2e;border-radius:10px;padding:11px 12px;margin:9px 0;background:#fff}
+.decision .kind{font-size:.7rem;font-weight:700;color:#b03a2e}.decision h3{font-size:.9rem;color:var(--coffee);margin:4px 0 7px;line-height:1.45}.decision p{font-size:.8rem;line-height:1.55;margin:5px 0}.decision small{display:block;color:#8a7a6d;font-size:.7rem;word-break:break-word}
+.decision-actions{display:flex;gap:7px;margin-top:9px}.decision-actions button{border:1px solid var(--gold);background:#fff;color:var(--brand-dk);border-radius:8px;padding:7px 11px;font-family:inherit;font-size:.76rem}.decision-actions .main{background:var(--coffee);color:#fff;border-color:var(--coffee)}
+.reviewed{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}.reviewed summary{font-size:.76rem;color:#8a7a6d;cursor:pointer}.reviewed-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;font-size:.75rem;border-bottom:1px solid var(--line)}.reviewed-row button{border:0;background:var(--cream);color:var(--brand);border-radius:7px;padding:5px 8px}
+.scanline{background:#fff6e0;color:#805c12;border:1px solid #e8d9a0;border-radius:10px;padding:9px 12px;font-size:.78rem;margin-bottom:12px}.case-next{font-size:.8rem;margin:7px 0;color:var(--coffee)}.case-next b{color:var(--brand)}
 </style></head><body>
 <div id="login" style="display:none"><div class="box">
 <h1>⚖️ 李珮瑄律師事務所</h1><p>內部系統・首次使用請輸入存取設定（只需一次，之後自動登入）</p>
@@ -123,6 +129,11 @@ function urgBadge(u, sp){
   return b;
 }
 let DATA = null, loadedAt = 0;
+const DECISION_RECEIPTS = 'kelly-mobile-decisions-reviewed';
+function decisionReceipts(){ try{ const v=JSON.parse(LS.getItem(DECISION_RECEIPTS)||'{}'); return v&&typeof v==='object'&&!Array.isArray(v)?v:{}; }catch{return {}} }
+function dismissDecision(i){ const row=DATA&&DATA.decisions&&DATA.decisions[i]; if(!row)return; const v=decisionReceipts(); v[row.id]={reviewed_at:new Date().toISOString()}; LS.setItem(DECISION_RECEIPTS,JSON.stringify(v)); render(DATA); }
+function restoreDecision(i){ const row=DATA&&DATA.decisions&&DATA.decisions[i]; if(!row)return; const v=decisionReceipts(); delete v[row.id]; LS.setItem(DECISION_RECEIPTS,JSON.stringify(v)); render(DATA); }
+function openDecisionCase(i){ if(i>=0) openDetail('cases',i); }
 function dataAge(d){
   // d.generated = "YYYY-MM-DD HH:MM"（電腦當地時間，手機同時區）
   const t = Date.parse(String(d.generated).replace(' ', 'T') + ':00');
@@ -143,7 +154,12 @@ function chipHtml(ch){
 }
 function render(d){
   DATA = d;
-  // 版面與桌面版同結構：統計3卡 → ☀️焦點 → ⏰其餘待辦(摺疊) → 📂案件卡 → 🧩專案 → 🤝顧問(摺疊) → 🗂️紀錄(摺疊) → 💬小抄(摺疊)
+  // 先顯示需要 Kelly 判斷的例外，再呈現期限、案件與其餘資料。
+  const receipts=decisionReceipts(), decisions=(d.decisions||[]).map((row,i)=>({row,i}));
+  const visibleDecisions=decisions.filter(x=>!receipts[x.row.id]), reviewedDecisions=decisions.filter(x=>receipts[x.row.id]);
+  const decisionCard=({row,i})=>{ const ci=(d.cases||[]).findIndex(c=>c.name===row.case); return `<article class="decision"><div class="kind">${esc(row.category)}</div><h3>${esc(row.title)}</h3><p><b>為什麼出現：</b>${esc(row.why)}</p><p><b>系統建議：</b>${esc(row.suggestion)}</p><small>來源：${esc(row.source)}</small><div class="decision-actions">${ci>=0?`<button class="main" onclick="openDecisionCase(${ci})">查看案件</button>`:''}<button onclick="dismissDecision(${i})">已知悉</button></div></article>`; };
+  const decisionHtml=visibleDecisions.length?visibleDecisions.map(decisionCard).join(''):'<div class="empty">目前沒有需要妳決定的例外事項。</div>';
+  const reviewedHtml=reviewedDecisions.length?`<details class="reviewed"><summary>已知悉 ${reviewedDecisions.length} 筆</summary>${reviewedDecisions.map(({row,i})=>`<div class="reviewed-row"><span>${esc(row.category)}｜${esc(row.title)}</span><button onclick="restoreDecision(${i})">重新顯示</button></div>`).join('')}</details>`:'';
   const focusHtml = (d.focus && d.focus.length) ?
     d.focus.map(f=>`<div class="focus-item ${f.cls!=='od'?'s2':''}"><div class="fd">${esc(f.word)}</div><div class="fw"><b>${esc(f.who)}</b>──${esc(f.task)}</div></div>`).join('')
     : '<div class="empty">沒有逾期或 7 日內的期限 🎉</div>';
@@ -152,6 +168,7 @@ function render(d){
   const caseHtml = d.cases.map((c,i)=>`<div class="ccard tap ${esc((c.chip&&c.chip.edge)||'low')}" onclick="openDetail('cases',${i})">
     <div class="chead"><span class="cname">${esc(String(c.name||'').replace('/','｜'))}</span><span>${c.scan_pending?'<span class="badge b-blu">尚未掃描</span>':''}</span></div>
     <div class="one">${esc(c.stage_short || c.stage || '')}</div>${chipHtml(c.chip)}
+    <div class="case-next"><b>下一步：</b>${esc(c.todos&&c.todos.length?c.todos[0].task:'尚未登錄下一步')}</div>
     <div class="tapfoot">點我看細節・開資料夾 ▸</div></div>`).join('');
   const projHtml = (d.projects && d.projects.length) ?
     d.projects.map(p=>`<div class="ccard ${esc((p.chip&&p.chip.edge)||'low')}">
@@ -166,12 +183,14 @@ function render(d){
   const cheatHtml = d.cheats.map(c=>`<div class="item"><span class="cat">${esc(c[0])}</span>｜${esc(c[1])}<br><span style="margin-left:2.6em">${esc(c[2])}</span></div>`).join('');
   document.getElementById('content').innerHTML = `
   ${ageLine(d)}
+  <section><div class="decision-head"><h2>需要妳決定</h2><span class="decision-count">${visibleDecisions.length} 筆</span></div>${decisionHtml}${reviewedHtml}</section>
+  <div class="scanline">卷證內容已讀：${esc((d.scan_coverage||{}).read||0)}／${esc((d.scan_coverage||{}).inventory||0)}；檔案盤點與內容閱讀分開計算。</div>
   <div class="stats">
    <div class="stat"><div class="ic ic1">📂</div><div><div class="n">${d.stats.cases}</div><div class="l">進行中案件</div></div></div>
    <div class="stat"><div class="ic ic2">⚠️</div><div><div class="n">${d.stats.overdue}</div><div class="l">逾期待辦</div></div></div>
-   <div class="stat"><div class="ic ic3">⏰</div><div><div class="n">${d.stats.week}</div><div class="l">7 日內期限</div></div></div>
+   <div class="stat"><div class="ic ic3">⏰</div><div><div class="n">${d.stats.week}</div><div class="l">14 日內期限</div></div></div>
   </div>
-  <section class="focus"><h2>☀️ 先看這幾件（逾期＋7 日內）</h2>${focusHtml}</section>
+  <section class="focus"><h2>期限與庭期提醒 · 14 日內</h2>${focusHtml}</section>
   <section><details class="sec"><summary>⏰ 其餘待辦（${t.later.length} 件，點開看）▾</summary>${laterHtml}</details></section>
   <section><h2>📂 進行中案件（${d.cases.length} 件）</h2>${caseHtml}</section>
   <section><h2>🧩 專案工作（${(d.projects||[]).length} 件）</h2>${projHtml}</section>
