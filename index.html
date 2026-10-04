@@ -87,6 +87,11 @@ details.sec[open] summary{margin-bottom:8px}
 .decision-actions{display:flex;gap:7px;margin-top:9px}.decision-actions button{border:1px solid var(--gold);background:#fff;color:var(--brand-dk);border-radius:8px;padding:7px 11px;font-family:inherit;font-size:.76rem}.decision-actions .main{background:var(--coffee);color:#fff;border-color:var(--coffee)}
 .reviewed{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}.reviewed summary{font-size:.76rem;color:#8a7a6d;cursor:pointer}.reviewed-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;font-size:.75rem;border-bottom:1px solid var(--line)}.reviewed-row button{border:0;background:var(--cream);color:var(--brand);border-radius:7px;padding:5px 8px}
 .scanline{background:#fff6e0;color:#805c12;border:1px solid #e8d9a0;border-radius:10px;padding:9px 12px;font-size:.78rem;margin-bottom:12px}.case-next{font-size:.8rem;margin:7px 0;color:var(--coffee)}.case-next b{color:var(--brand)}
+.case-todos{margin-top:9px;padding-top:8px;border-top:1px solid var(--line)}
+.case-todos-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:4px;font-size:.74rem;color:#8a7a6d}
+.case-todo{display:grid;grid-template-columns:auto 1fr;gap:7px;align-items:start;padding:6px 0;border-bottom:1px dashed var(--line);font-size:.8rem;line-height:1.45}
+.case-todo:last-child{border-bottom:0}.case-todo-priority{color:var(--brand);font-weight:700;white-space:nowrap}.case-todo-meta{display:block;color:#8a7a6d;font-size:.68rem;margin-top:2px}
+.case-todo-empty{font-size:.78rem;color:#8a7a6d;padding:4px 0}.mobile-readonly{font-size:.7rem;color:#8a7a6d;margin-top:6px}
 </style></head><body>
 <div id="login" style="display:none"><div class="box">
 <h1>⚖️ 李珮瑄律師事務所</h1><p>內部系統・首次使用請輸入存取設定（只需一次，之後自動登入）</p>
@@ -165,10 +170,11 @@ function render(d){
     : '<div class="empty">沒有逾期或 7 日內的期限 🎉</div>';
   const t = d.todos, todoItem = (x,c)=>`<div class="item ${c}"><div class="d">${esc(x.deadline)}｜${esc(x.case)}</div>${esc(x.task)}</div>`;
   const laterHtml = t.later.length ? t.later.map(x=>todoItem(x,'')).join('') : '<div class="empty">沒有其他待辦</div>';
+  const caseTodoHtml = c=>{ const rows=c.todos||[]; return `<div class="case-todos"><div class="case-todos-head"><b>案件待辦（${rows.length}）</b><span>電腦首頁可增刪修改</span></div>${rows.length?rows.map(x=>`<div class="case-todo"><span class="case-todo-priority">${esc(x.priority||'中')}</span><span>${esc(x.task)}${x.deadline?`<small class="case-todo-meta">期限 ${esc(x.deadline)}</small>`:''}</span></div>`).join(''):'<div class="case-todo-empty">目前沒有要追蹤的事項</div>'}</div>`; };
   const caseHtml = d.cases.map((c,i)=>`<div class="ccard tap ${esc((c.chip&&c.chip.edge)||'low')}" onclick="openDetail('cases',${i})">
     <div class="chead"><span class="cname">${esc(String(c.name||'').replace('/','｜'))}</span><span>${c.scan_pending?'<span class="badge b-blu">尚未掃描</span>':''}</span></div>
     <div class="one">${esc(c.stage_short || c.stage || '')}</div>${chipHtml(c.chip)}
-    <div class="case-next"><b>下一步：</b>${esc(c.todos&&c.todos.length?c.todos[0].task:'尚未登錄下一步')}</div>
+    ${caseTodoHtml(c)}
     <div class="tapfoot">點我看細節・開資料夾 ▸</div></div>`).join('');
   const projHtml = (d.projects && d.projects.length) ?
     d.projects.map(p=>`<div class="ccard ${esc((p.chip&&p.chip.edge)||'low')}">
@@ -192,7 +198,7 @@ function render(d){
   </div>
   <section class="focus"><h2>期限與庭期提醒 · 14 日內</h2>${focusHtml}</section>
   <section><details class="sec"><summary>⏰ 其餘待辦（${t.later.length} 件，點開看）▾</summary>${laterHtml}</details></section>
-  <section><h2>📂 進行中案件（${d.cases.length} 件）</h2>${caseHtml}</section>
+  <section><h2>📂 進行中案件（${d.cases.length} 件）</h2><div class="mobile-readonly">手機版顯示最新資料；待辦的新增、修改與移除請在電腦首頁操作。</div>${caseHtml}</section>
   <section><h2>🧩 專案工作（${(d.projects||[]).length} 件）</h2>${projHtml}</section>
   <section><details class="sec"><summary>🤝 法律顧問客戶（${d.advisory.length} 家）▾</summary>${advHtml}</details></section>
   <section><details class="sec"><summary>🗂️ 最近工作紀錄 ▾</summary>${workHtml}</details></section>
